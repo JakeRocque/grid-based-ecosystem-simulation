@@ -234,7 +234,7 @@ let paused = false;
 function connect() {
   const WS_URL = window.location.hostname === 'localhost'
     ? 'ws://localhost:8765'
-    : 'ws://localhost:8765';
+    : 'ws://grid-based-ecosystem-simulation.onrender.com';
   ws = new WebSocket(WS_URL);
   ws.binaryType = 'arraybuffer';
   document.getElementById('status').textContent = 'Connecting…';
