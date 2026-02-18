@@ -1,0 +1,20 @@
+services:
+  # ── Python WebSocket backend ──
+  - type: web
+    name: alife-server
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # ── Static frontend ──
+  - type: web
+    name: alife-frontend
+    runtime: static
+    staticPublishPath: ./frontend
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

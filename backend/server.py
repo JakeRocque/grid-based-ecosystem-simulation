@@ -156,8 +156,10 @@ async def main():
     """
     Host server.
     """
-    print("WebSocket server on ws://localhost:8765")
-    async with websockets.serve(sim_handler, "localhost", 8765):
+    host = "0.0.0.0"
+    port = int(os.environ.get("PORT", 8765))
+    print(f"WebSocket server on ws://{host}:{port}")
+    async with websockets.serve(sim_handler, host, port):
         await asyncio.Future()
 
 if __name__ == "__main__":

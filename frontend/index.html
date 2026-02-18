@@ -232,7 +232,10 @@ let ws;
 let paused = false;
 
 function connect() {
-  ws = new WebSocket('ws://localhost:8765');
+  const WS_URL = window.location.hostname === 'localhost'
+    ? 'ws://localhost:8765'
+    : 'ws://localhost:8765';
+  ws = new WebSocket(WS_URL);
   ws.binaryType = 'arraybuffer';
   document.getElementById('status').textContent = 'Connecting…';
 
