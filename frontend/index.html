@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artificial Life</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#eee;font-family:'Segoe UI',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+
+/* Sidebar */
+#sidebar{width:220px;min-width:220px;background:#1a1a1a;border-right:1px solid #333;display:flex;flex-direction:column;padding:14px;gap:14px;overflow-y:auto}
+#sidebar h2{font-size:15px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.sp-card{background:#222;border:1px solid #333;border-radius:6px;padding:10px 12px}
+.sp-card h3{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sp-dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.sp-card .pop{font-size:13px;opacity:.7;margin-bottom:8px}
+.sp-row{display:flex;gap:6px;align-items:center}
+.sp-row input[type=number]{width:60px;background:#1a1a1a;border:1px solid #444;color:#eee;padding:3px 6px;border-radius:3px;font-size:13px;text-align:center;appearance:textfield}
+.sp-row input[type=number]::-webkit-outer-spin-button,.sp-row input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sp-btn{padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;border:1px solid}
+.sp-btn.add{background:#2a5a2a;color:#ccc;border-color:#3a7a3a}
+.sp-btn.add:hover{background:#3a7a3a;color:#fff}
+.sp-btn.rm{background:#5a2a2a;color:#ccc;border-color:#7a3a3a}
+.sp-btn.rm:hover{background:#7a3a3a;color:#fff}
+.sp-info{font-size:11px;opacity:.45;margin-top:6px;line-height:1.4}
+
+/* Field config card */
+.cfg-card{background:#222;border:1px solid #333;border-radius:6px;overflow:hidden;flex-shrink:0}
+.cfg-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;font-size:13px;font-weight:600}
+.cfg-header:hover{background:#2a2a2a}
+.cfg-arrow{font-size:10px;opacity:.5;transition:transform .2s}
+.cfg-arrow.open{transform:rotate(180deg)}
+.cfg-body{padding:8px 12px;display:none;border-top:1px solid #333;gap:6px;flex-direction:column}
+.cfg-body.open{display:flex}
+.cfg-field{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cfg-field label{font-size:11px;opacity:.55;white-space:nowrap}
+.cfg-field input[type=number]{width:68px;background:#1a1a1a;border:1px solid #444;color:#eee;padding:3px 6px;border-radius:3px;font-size:12px;text-align:center;appearance:textfield;flex-shrink:0}
+.cfg-field input[type=number]::-webkit-outer-spin-button,.cfg-field input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.cfg-field input[type=number].invalid{border-color:#c44;background:#2a1a1a}
+.cfg-hint{font-size:10px;opacity:.35;line-height:1.4;margin-top:2px;text-align:right}
+
+/* Main area */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#bar{display:flex;align-items:center;gap:18px;padding:10px 18px;background:#1a1a1a;border-bottom:1px solid #333;flex-wrap:wrap}
+.s{font-size:14px;opacity:.85}.s b{font-weight:600}
+#ctrls{display:flex;gap:6px;margin-left:auto}
+#ctrls button{background:#2a2a2a;color:#ccc;border:1px solid #444;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px}
+#ctrls button:hover{background:#3a3a3a}
+#ctrls button.on{background:#c44;color:#fff;border-color:#c44}
+#wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+#paused{position:absolute;top:20px;font-size:32px;font-weight:700;color:#ff5050cc;display:none;pointer-events:none}
+#status{position:absolute;bottom:8px;font-size:12px;opacity:.4}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <h2>Species</h2>
+
+  <div class="sp-card" id="card-0">
+    <h3><span class="sp-dot" style="background:#fff"></span> Rabbit</h3>
+    <div class="pop">Pop: <span class="sp-count">0</span></div>
+    <div class="sp-row">
+      <input type="number" id="amt-0" value="50" min="1" max="1000">
+      <button class="sp-btn add" onclick="spawn(0)">+ Add</button>
+      <button class="sp-btn rm" onclick="remove(0)">− Kill</button>
+    </div>
+  </div>
+
+  <div class="sp-card" id="card-1">
+    <h3><span class="sp-dot" style="background:#f44"></span> Fox</h3>
+    <div class="pop">Pop: <span class="sp-count">0</span></div>
+    <div class="sp-row">
+      <input type="number" id="amt-1" value="25" min="1" max="1000">
+      <button class="sp-btn add" onclick="spawn(1)">+ Add</button>
+      <button class="sp-btn rm" onclick="remove(1)">− Kill</button>
+    </div>
+  </div>
+
+  <div class="sp-card" id="card-2">
+    <h3><span class="sp-dot" style="background:#44f"></span> Wolf</h3>
+    <div class="pop">Pop: <span class="sp-count">0</span></div>
+    <div class="sp-row">
+      <input type="number" id="amt-2" value="15" min="1" max="1000">
+      <button class="sp-btn add" onclick="spawn(2)">+ Add</button>
+      <button class="sp-btn rm" onclick="remove(2)">− Kill</button>
+    </div>
+  </div>
+
+  <!-- Field Config -->
+  <div class="cfg-card">
+    <div class="cfg-header" onclick="toggleCfg()">
+      ⚙ Field Config <span class="cfg-arrow" id="cfg-arrow">▼</span>
+    </div>
+    <div class="cfg-body" id="cfg-body">
+      <div class="cfg-field">
+        <label>Grass Rate</label>
+        <input type="number" id="cfg-grass_rate" value="6" step="1" min="0" max="10">
+      </div>
+      <div class="cfg-field">
+        <label>Starvation Energy</label>
+        <input type="number" id="cfg-starvation_energy" value="25" step="1" min="0" max="100">
+      </div>
+      <div class="cfg-field">
+        <label>Grass Energy</label>
+        <input type="number" id="cfg-grass_energy" value="30" step="1" min="0" max="100">
+      </div>
+      <div class="cfg-field">
+        <label>Reproduce Energy</label>
+        <input type="number" id="cfg-reproduce_energy" value="25" step="1" min="0" max="100">
+      </div>
+      <div class="cfg-field">
+        <label>Crowd Penalty</label>
+        <input type="number" id="cfg-crowd_penalty" value="25" step="1" min="0" max="100">
+      </div>
+      <p class="cfg-hint">Changes apply on next Reset ↻</p>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <div id="bar">
+    <div class="s"><b>Gen:</b> <span id="gen">0</span></div>
+    <div class="s"><b>Speed:</b> <span id="spd">1</span>x</div>
+    <div id="ctrls">
+      <button id="bp">⏸ Pause</button>
+      <button id="bm">−</button>
+      <button id="bf">+</button>
+      <button id="br">↻ Reset</button>
+    </div>
+  </div>
+  <div id="wrap">
+    <canvas id="c"></canvas>
+    <div id="paused">PAUSED</div>
+    <div id="status">Connecting…</div>
+  </div>
+</div>
+
+<script>
+const W = 300, H = 200;
+const SPECIES = [
+  { name: 'Rabbit', color: '#fff' },
+  { name: 'Fox',    color: '#f44' },
+  { name: 'Wolf',   color: '#44f' },
+];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+const imgData = ctx.createImageData(W, H);
+
+function resize() {
+  const wr = document.getElementById('wrap');
+  const scale = Math.min((wr.clientWidth - 20) / W, (wr.clientHeight - 20) / H);
+  canvas.style.width  = (W * scale) + 'px';
+  canvas.style.height = (H * scale) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Config panel toggle ──
+function toggleCfg() {
+  const body  = document.getElementById('cfg-body');
+  const arrow = document.getElementById('cfg-arrow');
+  const open  = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// ── Field config validation ──
+// For each cfg input: on any input event, strip non-integer chars,
+// then clamp to [min, max] and mark invalid while out of range.
+const CFG_KEYS = ['grass_rate','starvation_energy','grass_energy','reproduce_energy','crowd_penalty'];
+
+CFG_KEYS.forEach(k => {
+  const el = document.getElementById('cfg-' + k);
+  const min = parseInt(el.min);
+  const max = parseInt(el.max);
+
+  el.addEventListener('keydown', e => {
+    // Allow: backspace, delete, tab, arrows, home/end
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)) return;
+    if (ctrl && ['a','c','v','x'].includes(e.key.toLowerCase())) return;
+    // Block decimal point, minus, e (scientific notation), +
+    if (['.', '-', 'e', 'E', '+'].includes(e.key)) { e.preventDefault(); return; }
+    // Block anything that isn't a digit
+    if (!/^\d$/.test(e.key)) { e.preventDefault(); }
+  });
+
+  el.addEventListener('input', () => {
+    // Remove any non-digit characters that may have slipped in (e.g. paste)
+    const raw = el.value.replace(/[^\d]/g, '');
+    el.value = raw;
+    validate(el, min, max);
+  });
+
+  el.addEventListener('blur', () => {
+    // On blur, clamp to valid range so the field never stays invalid
+    let v = parseInt(el.value);
+    if (isNaN(v)) v = min;
+    v = Math.min(max, Math.max(min, v));
+    el.value = v;
+    el.classList.remove('invalid');
+  });
+});
+
+function validate(el, min, max) {
+  const v = parseInt(el.value);
+  const bad = isNaN(v) || v < min || v > max;
+  el.classList.toggle('invalid', bad);
+}
+
+function getFieldConfig() {
+  const cfg = {};
+  for (const k of CFG_KEYS) {
+    const el = document.getElementById('cfg-' + k);
+    // Use clamped value for sending
+    let v = parseInt(el.value);
+    if (isNaN(v)) v = parseInt(el.min);
+    v = Math.min(parseInt(el.max), Math.max(parseInt(el.min), v));
+    cfg[k] = v;
+  }
+  return cfg;
+}
+
+// ── WebSocket ──
+let ws;
+let paused = false;
+
+function connect() {
+  ws = new WebSocket('ws://localhost:8765');
+  ws.binaryType = 'arraybuffer';
+  document.getElementById('status').textContent = 'Connecting…';
+
+  ws.onopen = () => {
+    document.getElementById('status').textContent = 'Connected';
+  };
+
+  ws.onmessage = (evt) => {
+    const buf = evt.data;
+    const view = new DataView(buf);
+
+    const gen    = view.getUint32(0, true);
+    const speed  = view.getUint8(4);
+    const isPaused = view.getUint8(5);
+    paused = !!isPaused;
+
+    const specCounts = [];
+    for (let i = 0; i < SPECIES.length; i++) {
+      specCounts.push(view.getUint16(6 + i * 2, true));
+    }
+
+    const headerLen = 6 + SPECIES.length * 2;
+    const pixels = new Uint8Array(buf, headerLen);
+
+    const pix = imgData.data;
+    for (let x = 0; x < W; x++) {
+      for (let y = 0; y < H; y++) {
+        const si = (x * H + y) * 3;
+        const dy = H - 1 - y;
+        const di = (dy * W + x) * 4;
+        pix[di]     = pixels[si];
+        pix[di + 1] = pixels[si + 1];
+        pix[di + 2] = pixels[si + 2];
+        pix[di + 3] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    document.getElementById('gen').textContent = gen;
+    document.getElementById('spd').textContent = speed;
+
+    const cards = document.querySelectorAll('.sp-card');
+    let total = 0;
+    cards.forEach((card, i) => {
+      card.querySelector('.sp-count').textContent = specCounts[i];
+      total += specCounts[i];
+    });
+
+    const pb = document.getElementById('bp');
+    const po = document.getElementById('paused');
+    if (paused) { pb.classList.add('on'); pb.textContent = '▶ Play'; po.style.display = 'block'; }
+    else { pb.classList.remove('on'); pb.textContent = '⏸ Pause'; po.style.display = 'none'; }
+
+    document.getElementById('status').textContent = `${W}×${H} | ${total} animals`;
+  };
+
+  ws.onclose = () => {
+    document.getElementById('status').textContent = 'Disconnected — retrying…';
+    setTimeout(connect, 2000);
+  };
+  ws.onerror = () => ws.close();
+}
+connect();
+
+function send(cmd) { if (ws && ws.readyState === 1) ws.send(cmd); }
+
+function getAmount(sid) {
+  let v = parseInt(document.getElementById('amt-' + sid).value) || 1;
+  return Math.max(1, Math.min(1000, v));
+}
+function spawn(sid)  { send('spawn:'  + sid + ':' + getAmount(sid)); }
+function remove(sid) { send('remove:' + sid + ':' + getAmount(sid)); }
+
+function sendReset() {
+  const cfg = getFieldConfig();
+  const qs = Object.entries(cfg).map(([k,v]) => `${k}=${v}`).join('&');
+  send('reset?' + qs);
+}
+
+document.getElementById('bp').onclick = () => send('pause');
+document.getElementById('bf').onclick = () => send('faster');
+document.getElementById('bm').onclick = () => send('slower');
+document.getElementById('br').onclick = sendReset;
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); send('pause'); }
+  else if (e.key === '+' || e.key === '=') send('faster');
+  else if (e.key === '-') send('slower');
+  else if (e.key === 'r' || e.key === 'R') sendReset();
+});
+</script>
+</body>
+</html>
