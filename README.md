@@ -1,6 +1,8 @@
 # Artificial Life Simulation
 
-An interactive predator-prey ecosystem simulation with rabbits, foxes, and wolves on a 2D grid. Animals move, eat, reproduce, and die based on configurable species traits and field parameters.
+An interactive predator-prey ecosystem simulation with rabbits, foxes, and wolves on a 2D grid. Animals move, eat, reproduce, and die based on configurable species traits and field parameters. This project is deployed as a demo. the deployed version runs slowly and is meant just to show the concept. It runs much faster when run locally.
+Deployed at: 
+https://grid-based-ecosystem-simulation-1.onrender.com/
 
 ## Project Structure
 
