@@ -35,7 +35,7 @@ lut[1] = tuple(int(v * 255) for v in mcolors.to_rgb(base_colors[1]))
 for sid in sorted(species_config):
     base_rgb = np.array(mcolors.to_rgb(species_config[sid]['color']))
     dark = base_rgb * 0.8   # low energy = dark
-    bright = base_rgb        # full energy = bright
+    bright = base_rgb       # full energy = bright
     for e in range(n_shades):
         t = e / (n_shades - 1)
         color = dark + t * (bright - dark)
