@@ -11,7 +11,8 @@ import websockets
 from urllib.parse import parse_qs
 
 import sys, os
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 from backend.Field import Field
@@ -23,25 +24,27 @@ WIDTH, HEIGHT = 300, 200
 
 # Defaults matching Field.__init__
 FIELD_DEFAULTS = {
-    'grass_rate':         6,
-    'starvation_energy':  25,
-    'grass_energy':       30,
-    'reproduce_energy':   25,
-    'crowd_penalty':      25,
+    "grass_rate": 6,
+    "starvation_energy": 25,
+    "grass_energy": 30,
+    "reproduce_energy": 25,
+    "crowd_penalty": 25,
 }
 
 # Color LUT
 N_SHADES = 100
-base_colors = ['#3b2507', 'green']
+base_colors = ["#3b2507", "green"]
 lut = np.zeros((2 + len(species_config) * N_SHADES, 3), dtype=np.uint8)
 lut[0] = tuple(int(v * 255) for v in mcolors.to_rgb(base_colors[0]))
 lut[1] = tuple(int(v * 255) for v in mcolors.to_rgb(base_colors[1]))
 for sid in sorted(species_config):
-    base_rgb = np.array(mcolors.to_rgb(species_config[sid]['color']))
+    base_rgb = np.array(mcolors.to_rgb(species_config[sid]["color"]))
     dark, bright = base_rgb * 0.75, base_rgb
     for e in range(N_SHADES):
         t = e / (N_SHADES - 1)
-        lut[2 + sid * N_SHADES + e] = ((dark + t * (bright - dark)) * 255).astype(np.uint8)
+        lut[2 + sid * N_SHADES + e] = ((dark + t * (bright - dark)) * 255).astype(
+            np.uint8
+        )
 
 
 # -------- Server --------
@@ -82,7 +85,7 @@ async def sim_handler(ws):
     :param ws: Websocket connection.
     """
     field = create_field()
-    state = {'speed': 1, 'paused': False, 'gen': 0}
+    state = {"speed": 1, "paused": False, "gen": 0}
 
     async def send_frame():
         arr = field.get_array()
@@ -90,18 +93,19 @@ async def sim_handler(ws):
 
         counts = {}
         for sid in sorted(species_config):
-            counts[species_config[sid]['name']] = int(
-                (field.animal_data['species'] == sid).sum()
+            counts[species_config[sid]["name"]] = int(
+                (field.animal_data["species"] == sid).sum()
             )
 
         # Header: gen (u32) + speed (u8) + paused (u8) + counts (species order, u16 each)
-        header = struct.pack('<IBB',
-            state['gen'],
-            state['speed'],
-            1 if state['paused'] else 0,
+        header = struct.pack(
+            "<IBB",
+            state["gen"],
+            state["speed"],
+            1 if state["paused"] else 0,
         )
         for sid in sorted(species_config):
-            header += struct.pack('<H', counts[species_config[sid]['name']])
+            header += struct.pack("<H", counts[species_config[sid]["name"]])
 
         await ws.send(header + rgb.tobytes())
 
@@ -109,10 +113,10 @@ async def sim_handler(ws):
 
     async def run_loop():
         while True:
-            if not state['paused']:
-                for _ in range(state['speed']):
+            if not state["paused"]:
+                for _ in range(state["speed"]):
                     field.generation()
-                state['gen'] += state['speed']
+                state["gen"] += state["speed"]
                 await send_frame()
             await asyncio.sleep(1 / 30)
 
@@ -121,29 +125,29 @@ async def sim_handler(ws):
     try:
         async for msg in ws:
             cmd = msg.strip()
-            if cmd == 'pause':
-                state['paused'] = not state['paused']
+            if cmd == "pause":
+                state["paused"] = not state["paused"]
                 await send_frame()
-            elif cmd == 'faster':
-                state['speed'] = min(state['speed'] + 1, 10)
-            elif cmd == 'slower':
-                state['speed'] = max(state['speed'] - 1, 1)
-            elif cmd.startswith('reset'):
+            elif cmd == "faster":
+                state["speed"] = min(state["speed"] + 1, 10)
+            elif cmd == "slower":
+                state["speed"] = max(state["speed"] - 1, 1)
+            elif cmd.startswith("reset"):
                 # Support both plain 'reset' and 'reset?key=val&...'
-                qs = cmd[6:] if '?' in cmd else ''
+                qs = cmd[6:] if "?" in cmd else ""
                 cfg = parse_field_config(qs)
                 field = create_field(cfg)
-                state['gen'] = 0
-                state['paused'] = False
+                state["gen"] = 0
+                state["paused"] = False
                 await send_frame()
-            elif cmd.startswith('spawn:'):
-                parts = cmd.split(':')
+            elif cmd.startswith("spawn:"):
+                parts = cmd.split(":")
                 sid, count = int(parts[1]), int(parts[2])
                 if sid in species_config and 1 <= count <= 1000:
                     field.add_animals(sid, count)
                     await send_frame()
-            elif cmd.startswith('remove:'):
-                parts = cmd.split(':')
+            elif cmd.startswith("remove:"):
+                parts = cmd.split(":")
                 sid, count = int(parts[1]), int(parts[2])
                 if sid in species_config and count >= 1:
                     field.remove_animals(sid, count)
@@ -161,6 +165,7 @@ async def main():
     print(f"WebSocket server on ws://{host}:{port}")
     async with websockets.serve(sim_handler, host, port):
         await asyncio.Future()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
