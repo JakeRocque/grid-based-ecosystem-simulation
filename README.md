@@ -4,6 +4,9 @@ An interactive predator-prey ecosystem simulation with rabbits, foxes, and wolve
 
 The simulation runs entirely in the browser using Pyodide (Python compiled to WebAssembly), so no server is needed. A desktop demo version using pyglet is also included.
 
+**Live demo:** [https://<your-username>.github.io/<repo-name>/](https://jakerocque.github.io/grid-based-ecosystem-simulation/
+)
+
 ## Running
 
 **Web:** From the project root, run:
