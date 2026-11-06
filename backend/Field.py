@@ -6,8 +6,6 @@ Description: A field where an ecosystem simulation takes place.
 import numpy as np
 from scipy.ndimage import uniform_filter
 
-import matplotlib.pyplot as plt
-
 import sys
 import os
 
@@ -17,7 +15,7 @@ sys.path.insert(0, project_root)
 from backend.config.species_config import species_config
 
 
-# -------- Field --------
+# ---- Field ----
 class Field:
     """
     Field for a life simulation to take place.
@@ -560,6 +558,8 @@ class Field:
 
         :param self: Field.
         """
+        import matplotlib.pyplot as plt  # imported here for static rendering performance
+
         for sid, config in self.s_config.items():
             plt.plot(
                 range(self.generation_num),
