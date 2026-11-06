@@ -10,7 +10,6 @@ sys.path.insert(0, project_root)
 
 from backend.Field import Field
 
-
 # -------- Examples --------
 config_1 = {
     0: {

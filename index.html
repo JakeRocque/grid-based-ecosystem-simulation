@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Ecosystem</title>
+<style>
+body{margin:0;height:100vh;background:#000;color:#ddd;font:16px sans-serif;overflow:hidden}
+canvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(66vw,99vh);image-rendering:pixelated}
+#hud{position:absolute;top:10px;left:10px;white-space:pre}
+form{position:absolute;inset:0;margin:auto;width:260px;height:fit-content;background:#222;padding:16px}
+label{display:flex;justify-content:space-between;margin:6px 0}
+input{width:70px}
+</style></head><body>
+<canvas id="c" width="300" height="200"></canvas>
+<div id="hud">Loading Python…</div>
+<form id="form" hidden><div id="fields"></div><button>Start</button></form>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+const W = 300, H = 200, $ = id => document.getElementById(id);
+const PARAMS = {grass_rate: [6, 10], starvation_energy: [25, 100], grass_energy: [30, 100],
+                reproduce_energy: [25, 100], crowd_penalty: [25, 100], pop_cap: [25000, 100000]};
+const START = [400, 250, 150];
+
+async function main() {
+  const py = await loadPyodide();
+  await py.loadPackage(["numpy", "scipy"]);
+  py.FS.mkdirTree("/home/pyodide/backend/config");
+  for (const p of ["backend/Field.py", "backend/config/species_config.py"])
+    py.FS.writeFile("/home/pyodide/" + p, await (await fetch(p)).text());
+
+  py.runPython(`
+import sys; sys.path.insert(0, "/home/pyodide")
+import numpy as np
+from backend.Field import Field
+from backend.config.species_config import species_config as S
+field = None
+def reset(counts, **kw):
+    global field
+    field = Field(width=${W}, height=${H}, **kw)
+    for sid, n in enumerate(counts):
+        if n > 0: field.add_animals(sid, n)
+def frame(n):
+    for _ in range(n): field.generation()
+    return field.get_array().astype(np.uint16).tobytes()
+def counts():
+    return [int((field.animal_data["species"] == s).sum()) for s in S]
+`);
+  const get = n => py.globals.get(n), toJs = p => { const v = p.toJs(); p.destroy(); return v; };
+  const reset = get("reset"), frame = get("frame"), counts = get("counts");
+  const species = toJs(py.runPython("[[v['name'], v['color']] for v in S.values()]"));
+
+  // Colors: dirt, grass, then 100 energy shades per species (80% to 100% brightness).
+  const rgb = c => { const x = document.createElement("canvas").getContext("2d"); x.fillStyle = c;
+                     return [1, 3, 5].map(i => parseInt(x.fillStyle.slice(i, i + 2), 16)); };
+  const lut = [[71, 42, 15], rgb("green")];
+  species.forEach(([, c]) => { const b = rgb(c);
+    for (let e = 0; e < 100; e++) lut.push(b.map(v => v * (0.8 + 0.2 * e / 99) | 0)); });
+
+  const ctx = $("c").getContext("2d"), img = ctx.createImageData(W, H);
+  let gen = 0, speed = 1, paused = true, running = false;
+
+  function draw(n) {
+    const u = toJs(frame(n)), g = new Uint16Array(u.buffer, u.byteOffset, u.length / 2), d = img.data;
+    for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+      const c = lut[g[x * H + y]], i = ((H - 1 - y) * W + x) * 4;
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    const k = toJs(counts());
+    $("hud").textContent = `Gen: ${gen}\nSpeed: ${speed}x${paused ? "  PAUSED" : ""}\n\n` +
+      species.map(([name], i) => `${name}: ${k[i]}`).join("\n") + "\n\nSpace: pause  +/-: speed  R: new run";
+  }
+
+  function loop() {
+    const t = performance.now(), n = paused ? 0 : speed;
+    gen += n; draw(n);
+    setTimeout(loop, Math.max(0, 40 - (performance.now() - t)));
+  }
+
+  const inputs = [...species.map(([name], i) => [name, START[i] ?? 0, 25000]),
+                  ...Object.entries(PARAMS).map(([k, v]) => [k, ...v])];
+  $("fields").innerHTML = inputs.map(([k, v, max]) =>
+    `<label>${k}<input id="${k}" type="number" value="${v}" min="0" max="${max}" required></label>`).join("");
+
+  $("form").onsubmit = e => {
+    e.preventDefault();
+    const val = k => +$(k).value;
+    reset.callKwargs(species.map(([name]) => val(name)),
+                     Object.fromEntries(Object.keys(PARAMS).map(k => [k, val(k)])));
+    $("form").hidden = true; gen = 0; paused = false;
+    if (!running) { running = true; loop(); }
+  };
+
+  onkeydown = e => {
+    if (!$("form").hidden) return;
+    if (e.code === "Space") { e.preventDefault(); paused = !paused; }
+    else if (e.key === "+" || e.key === "=") speed = Math.min(speed + 1, 10);
+    else if (e.key === "-") speed = Math.max(speed - 1, 1);
+    else if (e.key === "r" || e.key === "R") { paused = true; $("form").hidden = false; }
+  };
+
+  $("hud").textContent = "";
+  $("form").hidden = false;
+}
+main().catch(e => { $("hud").textContent = "Failed to load: " + e.message; });
+</script>
+</body></html>

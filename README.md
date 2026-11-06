@@ -4,6 +4,31 @@ An interactive predator-prey ecosystem simulation with rabbits, foxes, and wolve
 Deployed at: 
 https://grid-based-ecosystem-simulation-1.onrender.com/
 
+The simulation runs entirely in the browser using Pyodide (Python compiled to WebAssembly), so no server is needed. A desktop demo version using pyglet is also included.
+
+## Running
+
+**Web:** From the project root, run:
+
+```
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`. Opening `index.html` directly won't work, because the browser blocks loading the Python files from disk.
+
+**Desktop:**
+
+```
+pip install -r requirements.txt
+python frontend/life_sim_front.py
+```
+
+**Tests:**
+
+```
+pytest tests/
+```
+
 ## Project Structure
 
 ```
@@ -12,22 +37,20 @@ https://grid-based-ecosystem-simulation-1.onrender.com/
 │   └── config/
 │       └── species_config.py     # Species definitions
 ├── frontend/
-│   └── index.html                # Web UI (WebSocket-based)
-├── server.py                     # WebSocket backend
-├── alife.py                      # Pyglet desktop viewer
-├── requirements.txt
-├── render.yaml                   # Render deployment config
-└── tests/
-    └── test_field.py
+│   └── life_sim_front.py         # Pyglet desktop viewer
+├── tests/
+│   └── test_field.py
+├── index.html                    # Web viewer (runs Python in the browser)
+└── requirements.txt
 ```
 
 ### Controls
 
-| Key / Button | Action |
+| Key | Action |
 |---|---|
 | `Space` | Pause / Resume |
 | `+` / `-` | Speed up / slow down |
-| `R` | Reset simulation |
+| `R` | New run (web: opens the settings form; desktop: resets with defaults) |
 | `Esc` | Quit (desktop only) |
 
 ---
@@ -55,7 +78,7 @@ species_config = {
 | Field | Description |
 |---|---|
 | `name` | Display name |
-| `color` | Matplotlib color string |
+| `color` | Color name (must be valid in both CSS and Matplotlib, e.g. `"red"`) |
 | `e` | Starting energy (0–100) |
 | `movement` | Max random steps per generation |
 | `metabolism` | % of food energy absorbed |
@@ -68,13 +91,13 @@ species_config = {
 
 ## Field Parameters
 
-Configurable via `Field(...)` or the web UI's Field Config panel:
+Set via `Field(...)` in Python, or in the web viewer's form at the start of each run:
 
 | Parameter | Default | Range | Description |
 |---|---|---|---|
-| `grass_rate` | 6 | 0–10 | Grass regrowth chance per cell per generation |
-| `starvation_energy` | 25 | 0–100 | Energy below which animals ignore predators to seek food |
+| `grass_rate` | 6 | 0–10 | % chance each dirt cell regrows grass per generation |
+| `starvation_energy` | 25 | 0–100 | Energy at or below which animals ignore predators to seek food |
 | `grass_energy` | 30 | 0–100 | Base energy grass provides |
-| `reproduce_energy` | 25 | 0–100 | Minimum energy required to reproduce |
-| `crowd_penalty` | 25 | 0–100 | Extra energy cost per neighbor when reproducing |
-| `pop_cap` | 25000 | ≥1 | Hard population limit (enforced randomly) |
+| `reproduce_energy` | 25 | 0–100 | Energy an animal must exceed to reproduce |
+| `crowd_penalty` | 25 | 0–100 | Extra energy needed to reproduce per other animal on the same cell |
+| `pop_cap` | 25000 | ≥1 | Hard population limit (excess animals removed at random) |
